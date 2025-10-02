@@ -12,3 +12,6 @@ __pycache__/
 
 # Exclude log files
 *.log
+
+# Exclude virtual environment folder
+.venv/
