@@ -46,25 +46,6 @@ python ejecutar_gui.py
 - 📋 **Reporte unificado** con estadísticas por archivo fuente
 - ✅ **Interfaz amigable** con indicadores de progreso
 
-### Opción 2: Script Simple (Un solo archivo)
-
-1. Coloca tu archivo JSON de Slack en el mismo directorio que los scripts
-2. Asegúrate de que se llame `2025-09-30.json` o edita el nombre en `ejecutar_extractor.py`
-3. Ejecuta:
-   ```bash
-   python ejecutar_extractor.py
-   ```
-
-### Opción 3: Script Avanzado con Argumentos
-
-```bash
-python slack_github_extractor.py archivo_slack.json -o mi_reporte.xlsx
-```
-
-**Parámetros:**
-- `archivo_slack.json`: Ruta al archivo JSON de Slack
-- `-o, --output`: Nombre del archivo Excel de salida (opcional, por defecto: `github_commits_report.xlsx`)
-
 ## Estructura del Archivo Excel Generado
 
 El archivo Excel contiene múltiples hojas organizadas:
@@ -100,8 +81,6 @@ Estadísticas agrupadas por autor:
 - **total_commits**: Total de commits por autor
 - **repository**: Lista de repositorios donde ha contribuido
 - **archivo_origen**: Archivos JSON donde aparece el autor
-
-### 📄 **Con scripts individuales (un archivo):**
 
 ### 📄 **Con scripts individuales (un archivo):**
 
@@ -216,3 +195,9 @@ Si encuentras problemas:
 ---
 
 *Desarrollado para extraer y analizar commits de GitHub desde notificaciones de Slack*
+
+# Actualización del README
+
+- Se ha revisado y actualizado el archivo README.md para reflejar los cambios recientes en el proyecto.
+- Se ha asegurado que las instrucciones sean claras y específicas para el uso de la interfaz gráfica (GUI).
+- Se han eliminado referencias a scripts o funcionalidades que no están relacionadas con la GUI.
