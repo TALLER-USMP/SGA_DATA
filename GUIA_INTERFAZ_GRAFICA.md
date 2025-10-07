@@ -6,7 +6,7 @@
 
 #### 1️⃣ **Ejecutar la interfaz:**
 ```bash
-python ejecutar_gui.py
+python scripts/ejecutar_gui.py
 ```
 
 #### 2️⃣ **Pasos en la interfaz:**
@@ -19,6 +19,7 @@ python ejecutar_gui.py
 2. **📄 Configurar nombre de salida:**
    - Cambia el nombre del archivo Excel si quieres
    - Por defecto: `commits_consolidados.xlsx`
+   - **El archivo Excel generado se guardará en la carpeta `data/` del proyecto.**
 
 3. **🚀 Procesar:**
    - Haz clic en "🚀 Procesar Archivos"
@@ -26,6 +27,7 @@ python ejecutar_gui.py
 
 4. **✅ ¡Listo!**
    - Se generará un archivo Excel con todos los commits consolidados
+   - El archivo Excel estará disponible en la carpeta `data/` (¡sube este archivo si quieres compartir los resultados!)
    - Verás un resumen con estadísticas
 
 ---
@@ -44,7 +46,7 @@ python ejecutar_gui.py
 
 ### 🎯 **Interfaz Gráfica** (RECOMENDADA)
 ```bash
-python ejecutar_gui.py
+python scripts/ejecutar_gui.py
 ```
 - ✅ Múltiples archivos
 - ✅ Interfaz visual
@@ -53,14 +55,14 @@ python ejecutar_gui.py
 
 ### 📝 **Script Simple** (Un archivo)
 ```bash
-python ejecutar_extractor.py
+python scripts/ejecutar_extractor.py
 ```
 - ✅ Rápido para un archivo
 - ❌ Solo un archivo a la vez
 
 ### 🔧 **Script Avanzado** (Personalizable)
 ```bash
-python slack_github_extractor.py archivo.json -o salida.xlsx
+python scripts/slack_github_extractor.py archivo.json -o salida.xlsx
 ```
 - ✅ Control total
 - ❌ Requiere comandos
@@ -69,10 +71,22 @@ python slack_github_extractor.py archivo.json -o salida.xlsx
 
 ## 🎉 **¡PRUÉBALO AHORA!**
 
-1. Ejecuta: `python ejecutar_gui.py`
+1. Ejecuta: `python scripts/ejecutar_gui.py`
 2. Selecciona tus archivos JSON
 3. ¡Obtén tu reporte consolidado!
 
 ---
 
 *🚀 La interfaz gráfica hace todo más fácil y rápido*
+
+---
+
+## 📈 Visualizar Dashboard
+
+Para ver el dashboard de los datos procesados, ejecuta:
+
+```bash
+python scripts/ejecutar_dashboard.py
+```
+
+Esto abrirá una visualización interactiva (o generará el reporte, según la implementación de tu script).

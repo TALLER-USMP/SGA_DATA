@@ -15,39 +15,40 @@ from pathlib import Path
 def verificar_python():
     """Verifica la versión de Python"""
     version = sys.version_info
-    if version.major >= 3 and version.minor >= 7:
-        print(f"✅ Python {version.major}.{version.minor}.{version.micro} - Compatible")
+    if version.major == 3 and version.minor >= 12:
+        print(f"✅ Python {version.major}.{version.minor}.{version.micro} - Compatible (3.12+)")
         return True
     else:
-        print(f"❌ Python {version.major}.{version.minor}.{version.micro} - Requiere Python 3.7+")
+        print(f"❌ Python {version.major}.{version.minor}.{version.micro} - Requiere Python 3.12+")
+        print("💡 Descarga Python 3.12 desde https://www.python.org/downloads/")
         return False
 
 def instalar_dependencias():
     """Instala las dependencias necesarias"""
-    dependencias = ['pandas>=1.5.0', 'openpyxl>=3.0.0', 'requests>=2.25.0']
-    
-    print("📦 Instalando dependencias...")
-    
+    print("📦 Actualizando pip, setuptools y wheel...")
     try:
-        for dep in dependencias:
-            print(f"   Instalando {dep}...")
-            subprocess.check_call([sys.executable, '-m', 'pip', 'install', dep])
-        
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip', 'setuptools', 'wheel'])
+        print("✅ pip, setuptools y wheel actualizados")
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error al actualizar pip/setuptools/wheel: {e}")
+        return False
+
+    print("📦 Instalando todas las dependencias desde requirements.txt...")
+    try:
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', 'modules/requirements.txt'])
         print("✅ Todas las dependencias instaladas correctamente")
         return True
-        
     except subprocess.CalledProcessError as e:
-        print(f"❌ Error al instalar dependencias: {e}")
+        print(f"❌ Error al instalar dependencias desde requirements.txt: {e}")
+        print("Pasos recomendados para resolver el problema:\n 1) Usar conda/conda-forge (recomendado):\n    conda create -n sga python=3.12 -y; conda activate sga; conda install -c conda-forge streamlit pyarrow pandas openpyxl requests plotly -y\n 2) O instalar herramientas de compilación en Windows y CMake (requiere reinicio y privilegios de administrador):\n    - Instala 'Visual Studio Build Tools' (C++), y 'CMake' (por ejemplo con winget o desde su web).\n 3) Luego reintenta: pip install -r modules/requirements.txt")
         return False
 
 def verificar_archivos():
     """Verifica que todos los archivos necesarios estén presentes"""
     archivos_requeridos = [
-        'slack_github_extractor.py',
-        'ejecutar_extractor.py', 
-        'github_api_enhancer.py',
-        'requirements.txt',
-        'README.md'
+        'README.md',
+        'modules/requirements.txt',
+        'modules/setup.py'
     ]
     
     print("📁 Verificando archivos del proyecto...")
@@ -86,28 +87,6 @@ def ejecutar_test():
     
     # Usar el primer archivo JSON encontrado
     archivo_test = archivos_json[0]
-    
-    print(f"🧪 Ejecutando test con {archivo_test}...")
-    
-    try:
-        # Importar y probar el extractor
-        from slack_github_extractor import SlackGitHubExtractor
-        
-        extractor = SlackGitHubExtractor(archivo_test)
-        slack_data = extractor.load_slack_data()
-        extractor.extract_github_commits(slack_data)
-        
-        if extractor.commits_data:
-            print(f"✅ Test exitoso - {len(extractor.commits_data)} commits encontrados")
-            return True
-        else:
-            print("⚠️  Test completado pero no se encontraron commits")
-            print("   Verifica que el JSON contenga notificaciones de GitHub")
-            return True
-            
-    except Exception as e:
-        print(f"❌ Error en el test: {e}")
-        return False
 
 def mostrar_resumen():
     """Muestra un resumen de cómo usar el proyecto"""
@@ -115,29 +94,10 @@ def mostrar_resumen():
     print("🎉 CONFIGURACIÓN COMPLETADA")
     print("="*60)
     
-    print("\n📚 CÓMO USAR EL EXTRACTOR:")
-    print("\n1. Opción Fácil:")
-    print("   python ejecutar_extractor.py")
-    
-    print("\n2. Opción Personalizada:")
-    print("   python slack_github_extractor.py tu_archivo.json -o reporte.xlsx")
-    
-    print("\n3. Con enriquecimiento de GitHub API:")
-    print("   python github_api_enhancer.py tu_archivo.json -t TU_TOKEN")
-    
-    print("\n4. Demo completo:")
-    print("   python demo_completo.py")
-    
-    print("\n📁 ARCHIVOS QUE SE GENERAN:")
-    print("   • reporte_commits_github.xlsx - Reporte principal")
-    print("   • Hoja 'Todos_los_Commits' - Lista completa")
-    print("   • Hoja 'Resumen_por_Repositorio' - Estadísticas por repo")
-    print("   • Hoja 'Resumen_por_Autor' - Estadísticas por autor")
-    
-    print("\n💡 CONSEJOS:")
-    print("   • Coloca tus archivos JSON de Slack en este directorio")
-    print("   • Para GitHub API, obtén un token en github.com/settings/tokens")
-    print("   • Lee README.md para documentación completa")
+    print("\n📚 CÓMO USAR EL PROYECTO:")
+    print("\n1. Instala las dependencias:")
+    print("   pip install -r modules/requirements.txt")
+    print("\n2. Lee README.md para la documentación y ejemplos de uso.")
 
 def main():
     """Función principal del configurador"""

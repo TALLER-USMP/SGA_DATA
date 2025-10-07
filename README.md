@@ -23,12 +23,17 @@ Este programa procesa archivos JSON exportados de Slack que contienen notificaci
 
 ## Instalación
 
+
 1. **Clona o descarga** los archivos en tu directorio de trabajo
 
-2. **Instala las dependencias**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+2. **Asegúrate de que la carpeta `data/` exista en la raíz del proyecto.**
+  - Todos los archivos Excel generados y utilizados por el dashboard deben guardarse en la carpeta `data/`.
+  - **La carpeta `data/` y los archivos `.xlsx` dentro de ella deben subirse al repositorio.**
+
+3. **Instala las dependencias**:
+  ```bash
+  pip install -r requirements.txt
+  ```
 
 ## Uso
 
@@ -124,7 +129,7 @@ Autores encontrados:
   - JeanClix: 4 commits
   - Adriancas28: 1 commits
 
-Archivo Excel generado: d:\USMP\taller\Convertir json a exel\reporte_commits_github.xlsx
+Archivo Excel generado: d:\USMP\taller\SGA_DATA\data\reporte_commits_github.xlsx
 ============================================================
 ```
 
@@ -175,8 +180,10 @@ Puedes modificar el código para:
 - Filtrar por fechas o repositorios específicos
 - Cambiar el formato del reporte Excel
 
-## Archivos del Proyecto
 
+## Archivos y Carpetas del Proyecto
+
+- `data/`: **Carpeta donde se deben guardar y subir los archivos Excel generados**
 - `extractor_gui.py`: **🎯 Interfaz gráfica principal** (selección múltiple)
 - `ejecutar_gui.py`: **🚀 Ejecutor de la interfaz gráfica** (recomendado)
 - `slack_github_extractor.py`: Clase principal del extractor

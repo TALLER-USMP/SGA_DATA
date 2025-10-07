@@ -284,18 +284,20 @@ class GitHubExtractorGUI:
     
     def generar_reporte_consolidado(self, commits_data, nombre_archivo):
         """
-        Genera un reporte Excel consolidado con todos los commits
+        Genera un reporte Excel consolidado con todos los commits en la carpeta data/
         """
         df = pd.DataFrame(commits_data)
-        
         # Ordenar por timestamp
         if 'slack_timestamp' in df.columns:
             df = df.sort_values('slack_timestamp', ascending=False)
-        
-        with pd.ExcelWriter(nombre_archivo, engine='openpyxl') as writer:
+        # Asegurar que la carpeta data/ existe
+        carpeta_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+        if not os.path.exists(carpeta_data):
+            os.makedirs(carpeta_data)
+        ruta_salida = os.path.join(carpeta_data, nombre_archivo)
+        with pd.ExcelWriter(ruta_salida, engine='openpyxl') as writer:
             # Hoja principal con todos los commits
             df.to_excel(writer, sheet_name='Todos_los_Commits', index=False)
-            
             # Hoja agrupada por archivo fuente
             if 'archivo_origen' in df.columns:
                 archivo_summary = df.groupby('archivo_origen').agg({
@@ -304,7 +306,6 @@ class GitHubExtractorGUI:
                     'author_display': lambda x: ', '.join(x.unique())
                 }).rename(columns={'commit_hash': 'total_commits'})
                 archivo_summary.to_excel(writer, sheet_name='Resumen_por_Archivo')
-            
             # Hoja agrupada por repositorio
             if not df.empty:
                 repo_summary = df.groupby('repository').agg({
@@ -313,7 +314,6 @@ class GitHubExtractorGUI:
                     'archivo_origen': lambda x: ', '.join(x.unique()) if 'archivo_origen' in df.columns else 'N/A'
                 }).rename(columns={'commit_hash': 'total_commits'})
                 repo_summary.to_excel(writer, sheet_name='Resumen_por_Repositorio')
-                
                 # Hoja agrupada por autor
                 author_summary = df.groupby('author_display').agg({
                     'commit_hash': 'count',

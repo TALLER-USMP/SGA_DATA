@@ -1,0 +1,31 @@
+
+# Entorno virtual
+.venv/
+.venv/**
+
+# Archivos específicos por PC
+data/*
+
+# Python cache y archivos temporales
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Variables de entorno
+.env
+.env.*
+
+# Archivos del sistema
+.DS_Store
+
+# IDEs
+.idea/
+.vscode/
+
+# Bases de datos
+*.sqlite3
+*.db
+
+# Archivos de instalación
+*.egg-info/
