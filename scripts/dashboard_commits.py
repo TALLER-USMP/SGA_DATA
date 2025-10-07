@@ -21,6 +21,15 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import glob
 import os
+# --- Integración Google Drive ---
+import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts'))
+try:
+    from utils_drive_excel import listar_excels_drive, descargar_excel_drive
+    DRIVE_OK = True
+except Exception as e:
+    DRIVE_OK = False
+    drive_error = str(e)
 from datetime import datetime, timedelta
 import numpy as np
 import re
@@ -46,30 +55,44 @@ class CommitsDashboard:
         
     def cargar_archivos_excel(self):
         """
-        Busca y carga archivos Excel disponibles en la carpeta 'data'.
+        Busca y carga archivos Excel disponibles desde Google Drive (API) o local si falla.
         """
+        if DRIVE_OK:
+            try:
+                archivos_drive = listar_excels_drive()
+                # Solo nombres, pero guardamos el id para después
+                self.archivos_drive = {f["name"]: f["id"] for f in archivos_drive}
+                archivos_commits = [name for name in self.archivos_drive.keys() if any(keyword in name.lower() for keyword in ['registro', 'commit', 'github', 'back', 'front'])]
+                return archivos_commits
+            except Exception as e:
+                st.warning(f"No se pudo acceder a Google Drive: {e}")
+        # Fallback local
         carpeta_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
         if not os.path.exists(carpeta_data):
             return []
         archivos_excel = glob.glob(os.path.join(carpeta_data, "*.xlsx"))
-        # Filtrar archivos que probablemente contengan datos de commits
-        archivos_commits = [os.path.basename(f) for f in archivos_excel if any(keyword in os.path.basename(f).lower() 
-                           for keyword in ['registro', 'commit', 'github', 'back', 'front'])]
+        archivos_commits = [os.path.basename(f) for f in archivos_excel if any(keyword in os.path.basename(f).lower() for keyword in ['registro', 'commit', 'github', 'back', 'front'])]
+        self.archivos_drive = None
         return archivos_commits
     
     def leer_excel_commits(self, archivo):
         """
-        Lee un archivo Excel y extrae los datos de commits desde la carpeta 'data'.
+        Lee un archivo Excel y extrae los datos de commits desde Google Drive o local.
         """
         try:
-            carpeta_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
-            ruta_archivo = os.path.join(carpeta_data, archivo)
-            # Intentar leer la hoja "Todos_los_Commits" primero
-            try:
-                df = pd.read_excel(ruta_archivo, sheet_name='Todos_los_Commits')
-            except:
-                # Si no existe, leer la primera hoja
-                df = pd.read_excel(ruta_archivo, sheet_name=0)
+            # Si hay archivos de Drive, descargarlo
+            if hasattr(self, 'archivos_drive') and self.archivos_drive and archivo in self.archivos_drive:
+                file_id = self.archivos_drive[archivo]
+                df = descargar_excel_drive(file_id)
+            else:
+                carpeta_data = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+                ruta_archivo = os.path.join(carpeta_data, archivo)
+                # Intentar leer la hoja "Todos_los_Commits" primero
+                try:
+                    df = pd.read_excel(ruta_archivo, sheet_name='Todos_los_Commits')
+                except:
+                    # Si no existe, leer la primera hoja
+                    df = pd.read_excel(ruta_archivo, sheet_name=0)
             # Verificar que tenga las columnas esperadas
             columnas_requeridas = ['repository', 'author_display', 'commit_message']
             if not all(col in df.columns for col in columnas_requeridas):

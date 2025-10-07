@@ -33,21 +33,21 @@ def instalar_dependencias():
         print(f"❌ Error al actualizar pip/setuptools/wheel: {e}")
         return False
 
-    print("📦 Instalando todas las dependencias desde requirements.txt...")
+    print("📦 Instalando todas las dependencias desde requirements.txt (raíz)...")
     try:
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', 'modules/requirements.txt'])
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt'])
         print("✅ Todas las dependencias instaladas correctamente")
         return True
     except subprocess.CalledProcessError as e:
         print(f"❌ Error al instalar dependencias desde requirements.txt: {e}")
-        print("Pasos recomendados para resolver el problema:\n 1) Usar conda/conda-forge (recomendado):\n    conda create -n sga python=3.12 -y; conda activate sga; conda install -c conda-forge streamlit pyarrow pandas openpyxl requests plotly -y\n 2) O instalar herramientas de compilación en Windows y CMake (requiere reinicio y privilegios de administrador):\n    - Instala 'Visual Studio Build Tools' (C++), y 'CMake' (por ejemplo con winget o desde su web).\n 3) Luego reintenta: pip install -r modules/requirements.txt")
+        print("Pasos recomendados para resolver el problema:\n 1) Usar conda/conda-forge (recomendado):\n    conda create -n sga python=3.12 -y; conda activate sga; conda install -c conda-forge streamlit pyarrow pandas openpyxl requests plotly -y\n 2) O instalar herramientas de compilación en Windows y CMake (requiere reinicio y privilegios de administrador):\n    - Instala 'Visual Studio Build Tools' (C++), y 'CMake' (por ejemplo con winget o desde su web).\n 3) Luego reintenta: pip install -r requirements.txt")
         return False
 
 def verificar_archivos():
     """Verifica que todos los archivos necesarios estén presentes"""
     archivos_requeridos = [
         'README.md',
-        'modules/requirements.txt',
+        'requirements.txt',
         'modules/setup.py'
     ]
     
@@ -96,7 +96,7 @@ def mostrar_resumen():
     
     print("\n📚 CÓMO USAR EL PROYECTO:")
     print("\n1. Instala las dependencias:")
-    print("   pip install -r modules/requirements.txt")
+    print("   pip install -r requirements.txt")
     print("\n2. Lee README.md para la documentación y ejemplos de uso.")
 
 def main():
