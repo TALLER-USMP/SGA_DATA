@@ -51,6 +51,8 @@ class CommitsDashboard:
     def __init__(self):
         self.df = None
         self.archivos_disponibles = []
+        # Estado para alternar entre username y nombre real
+        self.mostrar_nombres_reales = False
 
         
     def cargar_archivos_excel(self):
@@ -122,6 +124,186 @@ class CommitsDashboard:
         
         return df
     
+    def alternar_nombres_autores(self, df):
+        """
+        Alterna entre mostrar nombres de usuario de GitHub y nombres reales
+        """
+        if df is None or df.empty:
+            return df
+        
+        df_modificado = df.copy()
+        
+        # Verificar si tenemos las columnas necesarias
+        tiene_username = 'author_username' in df.columns
+        tiene_nombre_real = 'nombre_real' in df.columns
+        
+        if not tiene_username or not tiene_nombre_real:
+            return df_modificado
+        
+        # Determinar las columnas a usar
+        col_username = 'author_username'
+        col_nombre_real = 'nombre_real'
+        
+        # Crear columna temporal para el display
+        if self.mostrar_nombres_reales:
+            # Usar nombres reales, pero mantener username como fallback
+            df_modificado['author_display'] = df_modificado[col_nombre_real].fillna(df_modificado[col_username])
+        else:
+            # Usar usernames de GitHub
+            df_modificado['author_display'] = df_modificado[col_username].fillna(df_modificado[col_nombre_real])
+        
+        return df_modificado
+    
+    def crear_resumen_usuarios_completo(self, df):
+        """
+        Crea un resumen completo de usuarios con estadísticas detalladas
+        """
+        if df is None or df.empty or 'author_display' not in df.columns:
+            return None
+        
+        # Estadísticas por usuario
+        resumen_usuarios = []
+        
+        for usuario in df['author_display'].unique():
+            if pd.isna(usuario):
+                continue
+                
+            # Filtrar datos del usuario
+            df_usuario = df[df['author_display'] == usuario]
+            
+            # Estadísticas básicas
+            total_commits = len(df_usuario)
+            repositorios = df_usuario['repository'].nunique() if 'repository' in df_usuario.columns else 0
+            
+            # Estadísticas de Pull Requests
+            total_prs = 0
+            prs_unicos = 0
+            if 'es_pull_request' in df_usuario.columns:
+                total_prs = df_usuario['es_pull_request'].sum()
+                if 'numero_pr' in df_usuario.columns:
+                    prs_unicos = df_usuario[df_usuario['es_pull_request'] & df_usuario['numero_pr'].notna()]['numero_pr'].nunique()
+            
+            # Commits regulares
+            commits_regulares = total_commits - total_prs
+            
+            # Repositorios donde contribuyó
+            lista_repos = df_usuario['repository'].unique().tolist() if 'repository' in df_usuario.columns else []
+            
+            # Fechas de actividad
+            fecha_primer_commit = None
+            fecha_ultimo_commit = None
+            if 'slack_timestamp' in df_usuario.columns:
+                fechas = pd.to_datetime(df_usuario['slack_timestamp'], errors='coerce').dropna()
+                if not fechas.empty:
+                    fecha_primer_commit = fechas.min().strftime('%Y-%m-%d')
+                    fecha_ultimo_commit = fechas.max().strftime('%Y-%m-%d')
+            
+            resumen_usuarios.append({
+                'Usuario': usuario,
+                'Total Commits': total_commits,
+                'Commits Regulares': commits_regulares,
+                'Pull Requests': total_prs,
+                'PRs Únicos': prs_unicos,
+                'Repositorios': repositorios,
+                'Lista Repositorios': ', '.join(lista_repos[:3]) + ('...' if len(lista_repos) > 3 else ''),
+                'Primer Commit': fecha_primer_commit or 'N/A',
+                'Último Commit': fecha_ultimo_commit or 'N/A'
+            })
+        
+        # Ordenar por total de commits
+        resumen_usuarios.sort(key=lambda x: x['Total Commits'], reverse=True)
+        
+        return resumen_usuarios
+    
+    def mostrar_modal_usuarios(self, df):
+        """
+        Muestra un modal con la lista completa de usuarios y sus estadísticas
+        """
+        # Asegurar que se aplique la alternancia de nombres antes de crear el resumen
+        df_con_nombres = df.copy()
+        if 'mostrar_nombres_reales' in st.session_state:
+            self.mostrar_nombres_reales = st.session_state.mostrar_nombres_reales
+            df_con_nombres = self.alternar_nombres_autores(df_con_nombres)
+        
+        # Crear el resumen de usuarios con los nombres correctos
+        resumen_usuarios = self.crear_resumen_usuarios_completo(df_con_nombres)
+        
+        if not resumen_usuarios:
+            st.warning("No se encontraron datos de usuarios para mostrar")
+            return
+        
+        # Crear el modal usando st.expander para simular un modal
+        with st.expander("📊 Lista Completa de Usuarios - Estadísticas Detalladas", expanded=True):
+            st.markdown("### 👥 Resumen de Contribuciones por Usuario")
+            
+            # Convertir a DataFrame para mejor visualización
+            df_usuarios = pd.DataFrame(resumen_usuarios)
+            
+            # Mostrar métricas generales
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                st.metric("👥 Total Usuarios", len(resumen_usuarios))
+            
+            with col2:
+                total_commits = df_usuarios['Total Commits'].sum()
+                st.metric("📝 Total Commits", total_commits)
+            
+            with col3:
+                total_prs = df_usuarios['Pull Requests'].sum()
+                st.metric("🔄 Total PRs", total_prs)
+            
+            with col4:
+                total_repos = df_usuarios['Repositorios'].sum()
+                st.metric("📁 Total Repos", total_repos)
+            
+            st.markdown("---")
+            
+            # Tabla detallada de usuarios
+            st.markdown("### 📋 Detalles por Usuario")
+            
+            # Configurar la tabla para mejor visualización
+            st.dataframe(
+                df_usuarios,
+                use_container_width=True,
+                height=600,
+                column_config={
+                    "Usuario": st.column_config.TextColumn("👤 Usuario", width="medium"),
+                    "Total Commits": st.column_config.NumberColumn("📝 Total", width="small"),
+                    "Commits Regulares": st.column_config.NumberColumn("📄 Regulares", width="small"),
+                    "Pull Requests": st.column_config.NumberColumn("🔄 PRs", width="small"),
+                    "PRs Únicos": st.column_config.NumberColumn("🆔 PRs Únicos", width="small"),
+                    "Repositorios": st.column_config.NumberColumn("📁 Repos", width="small"),
+                    "Lista Repositorios": st.column_config.TextColumn("📂 Repositorios", width="large"),
+                    "Primer Commit": st.column_config.TextColumn("🕐 Primer", width="small"),
+                    "Último Commit": st.column_config.TextColumn("🕐 Último", width="small")
+                }
+            )
+            
+            # Gráfico adicional de distribución
+            st.markdown("### 📊 Distribución de Commits por Usuario")
+            
+            fig_distribucion = px.bar(
+                df_usuarios.head(15),  # Top 15 usuarios
+                x='Usuario',
+                y='Total Commits',
+                title="🏆 Top 15 Usuarios por Total de Commits",
+                color='Total Commits',
+                color_continuous_scale='viridis'
+            )
+            
+            fig_distribucion.update_layout(
+                xaxis_tickangle=-45,
+                height=500,
+                showlegend=False
+            )
+            
+            st.plotly_chart(fig_distribucion, use_container_width=True)
+            
+            # Botón para cerrar el modal
+            if st.button("❌ Cerrar Lista de Usuarios"):
+                st.session_state.mostrar_modal_usuarios = False
+                st.rerun()
 
     def analizar_pull_requests(self, df):
         """
@@ -542,6 +724,46 @@ class CommitsDashboard:
             )
             if st.button("🔄 Recargar Datos"):
                 st.cache_data.clear()
+            
+            # Botón para alternar entre nombres de usuario y nombres reales
+            st.markdown("---")
+            st.subheader("👤 Mostrar Autores")
+            
+            # Verificar si tenemos las columnas necesarias para el toggle
+            tiene_columnas_nombres = False
+            if archivo_seleccionado:
+                try:
+                    df_temp = self.leer_excel_commits(archivo_seleccionado)
+                    if df_temp is not None and not df_temp.empty:
+                        tiene_username = 'author_username' in df_temp.columns
+                        tiene_nombre_real = 'nombre_real' in df_temp.columns
+                        tiene_columnas_nombres = tiene_username and tiene_nombre_real
+                except:
+                    pass
+            
+            if tiene_columnas_nombres:
+                # Usar session state para mantener el estado del toggle
+                if 'mostrar_nombres_reales' not in st.session_state:
+                    st.session_state.mostrar_nombres_reales = False
+                
+                # Botón de alternancia
+                if st.button(
+                    "🔄 Cambiar a Nombres Reales" if not st.session_state.mostrar_nombres_reales 
+                    else "🔄 Cambiar a Usernames GitHub",
+                    help="Alterna entre mostrar nombres de usuario de GitHub y nombres reales"
+                ):
+                    st.session_state.mostrar_nombres_reales = not st.session_state.mostrar_nombres_reales
+                    st.rerun()
+                
+                # Indicador del estado actual
+                estado_actual = "Nombres Reales" if st.session_state.mostrar_nombres_reales else "Usernames GitHub"
+                st.info(f"📋 Mostrando: **{estado_actual}**")
+                
+                # Botón para ver lista completa de usuarios
+                if st.button("📊 Ver Lista Completa de Usuarios", help="Abre un modal con estadísticas detalladas de todos los usuarios"):
+                    st.session_state.mostrar_modal_usuarios = True
+            else:
+                st.info("ℹ️ No se detectaron columnas de nombres alternativos")
         # Cargar datos
         if archivo_seleccionado:
             with st.spinner("Cargando datos..."):
@@ -553,9 +775,18 @@ class CommitsDashboard:
                 df = self.procesar_timestamps(df)
                 # Analizar Pull Requests
                 df = self.analizar_pull_requests(df)
+                # Aplicar alternancia de nombres si está habilitada
+                if 'mostrar_nombres_reales' in st.session_state:
+                    self.mostrar_nombres_reales = st.session_state.mostrar_nombres_reales
+                    df = self.alternar_nombres_autores(df)
                 # Mostrar información del archivo
                 st.success(f"✅ Datos cargados desde: {archivo_seleccionado}")
                 st.info(f"📊 {len(df)} commits encontrados")
+            
+            # Mostrar modal de usuarios si está activado
+            if 'mostrar_modal_usuarios' in st.session_state and st.session_state.mostrar_modal_usuarios:
+                self.mostrar_modal_usuarios(df)
+            
             # Métricas principales
             self.crear_metricas_principales(df)
             # Métricas de Pull Requests
