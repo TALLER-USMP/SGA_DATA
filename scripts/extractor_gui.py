@@ -275,7 +275,7 @@ class GitHubExtractorGUI:
                 self.root.after(0, lambda: self.mostrar_sin_commits(archivos_con_error))
                 
         except Exception as e:
-            self.root.after(0, lambda: self.mostrar_error(str(e)))
+            self.root.after(0, lambda err=str(e): self.mostrar_error(err))
         
         finally:
             self.procesando = False
@@ -287,6 +287,46 @@ class GitHubExtractorGUI:
         Genera un reporte Excel consolidado con todos los commits en la carpeta data/
         """
         df = pd.DataFrame(commits_data)
+        # Agregar columna de nombre real usando el mapeo
+        try:
+            import sys
+            import importlib.util
+            ruta_mapeo = os.path.join(os.path.dirname(__file__), 'github_to_nombre.py')
+            spec = importlib.util.spec_from_file_location('github_to_nombre', ruta_mapeo)
+            if spec is not None and spec.loader is not None:
+                github_to_nombre_mod = importlib.util.module_from_spec(spec)
+                sys.modules['github_to_nombre'] = github_to_nombre_mod
+                spec.loader.exec_module(github_to_nombre_mod)
+                github_to_nombre = github_to_nombre_mod.github_to_nombre
+                # Buscar columna de usuario github
+                if 'author_username' in df.columns:
+                    df['nombre_real'] = df['author_username'].map(github_to_nombre).fillna(df['author_username'])
+                elif 'author' in df.columns:
+                    df['nombre_real'] = df['author'].map(github_to_nombre).fillna(df['author'])
+                elif 'author_display' in df.columns:
+                    df['nombre_real'] = df['author_display'].map(github_to_nombre).fillna(df['author_display'])
+                else:
+                    df['nombre_real'] = ''
+            else:
+                # No se pudo cargar el mapeo
+                if 'author_username' in df.columns:
+                    df['nombre_real'] = df['author_username']
+                elif 'author' in df.columns:
+                    df['nombre_real'] = df['author']
+                elif 'author_display' in df.columns:
+                    df['nombre_real'] = df['author_display']
+                else:
+                    df['nombre_real'] = ''
+        except Exception as e:
+            # Si hay error, dejar la columna como el valor original
+            if 'author_username' in df.columns:
+                df['nombre_real'] = df['author_username']
+            elif 'author' in df.columns:
+                df['nombre_real'] = df['author']
+            elif 'author_display' in df.columns:
+                df['nombre_real'] = df['author_display']
+            else:
+                df['nombre_real'] = ''
         # Ordenar por timestamp
         if 'slack_timestamp' in df.columns:
             df = df.sort_values('slack_timestamp', ascending=False)
@@ -303,7 +343,8 @@ class GitHubExtractorGUI:
                 archivo_summary = df.groupby('archivo_origen').agg({
                     'commit_hash': 'count',
                     'repository': lambda x: ', '.join(x.unique()),
-                    'author_display': lambda x: ', '.join(x.unique())
+                    'author_display': lambda x: ', '.join(x.unique()),
+                    'nombre_real': lambda x: ', '.join(x.unique())
                 }).rename(columns={'commit_hash': 'total_commits'})
                 archivo_summary.to_excel(writer, sheet_name='Resumen_por_Archivo')
             # Hoja agrupada por repositorio
@@ -311,6 +352,7 @@ class GitHubExtractorGUI:
                 repo_summary = df.groupby('repository').agg({
                     'commit_hash': 'count',
                     'author_display': lambda x: ', '.join(x.unique()),
+                    'nombre_real': lambda x: ', '.join(x.unique()),
                     'archivo_origen': lambda x: ', '.join(x.unique()) if 'archivo_origen' in df.columns else 'N/A'
                 }).rename(columns={'commit_hash': 'total_commits'})
                 repo_summary.to_excel(writer, sheet_name='Resumen_por_Repositorio')
@@ -318,6 +360,7 @@ class GitHubExtractorGUI:
                 author_summary = df.groupby('author_display').agg({
                     'commit_hash': 'count',
                     'repository': lambda x: ', '.join(x.unique()),
+                    'nombre_real': lambda x: ', '.join(x.unique()),
                     'archivo_origen': lambda x: ', '.join(x.unique()) if 'archivo_origen' in df.columns else 'N/A'
                 }).rename(columns={'commit_hash': 'total_commits'})
                 author_summary.to_excel(writer, sheet_name='Resumen_por_Autor')
